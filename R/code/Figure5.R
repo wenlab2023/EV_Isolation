@@ -1,8 +1,8 @@
-wd <- "~/Desktop/数据/外泌体/外泌体r/result/检测方法对比/R/"
+wd <- "~/R/"
 setwd(wd)
 
 wdcode <- paste0("code/") 
-ver <- 'F5/'
+ver <- 'Figure5/'
 wdresult <- paste0("result/",ver)
 wddata <- paste0("data/",ver)
 wdplot <- paste0("plot/",ver)

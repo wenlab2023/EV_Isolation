@@ -1,8 +1,8 @@
-wd <- "~/Desktop/EV_project/"
+wd <- "~/R/"
 setwd(wd)
 
 wdcode <- paste0("code/") 
-ver <- 'F2/'
+ver <- 'Figure2/'
 wdresult <- paste0("result/",ver)
 wddata <- paste0("data/",ver)
 wdplot <- paste0("plot/",ver)
