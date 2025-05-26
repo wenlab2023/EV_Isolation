@@ -1,3 +1,5 @@
+
+
 wd <- "~/R/"
 setwd(wd)
 
@@ -13,20 +15,32 @@ load_plot_packages()
 
 # b -------------------
 
-load(paste0(wddata,'F2bdata.Rdata'))
+load(paste0(wddata,'Figure2data.R'))
 
 data1$storage <- factor(data1$storage, levels = c('none','froz'))
+data1 <- data1 %>%
+  dplyr::mutate(
+    value = case_when(
+      name == "AF4_1_a" ~ value * 0.47,
+      name == "AF4_1_b" ~ value * 0.47,
+      name == "AF4_2_a" ~ value * 0.41,
+      name == "AF4_2_b" ~ value * 0.41,
+      name == "AF4_3_a" ~ value * 0.39,
+      name == "AF4_3_b" ~ value * 0.39,
+      TRUE                       ~ value
+    )
+  )
 
 data1 %>%
   ggplot(aes(x = method, y = value, fill = storage)) +  
   geom_boxplot(position = position_dodge(width = 0.8), width = 0.5, 
                size = 0.5, colour = 'black', 
-               outlier.colour = 'white', outlier.size = 0.1,alpha=0.8) +
+               outlier.colour = 'white', outlier.size = 0.1,alpha=1) +
   geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.8),alpha=0.8,
              shape = 21, colour = 'black', size = 1.3) + 
-  scale_fill_manual(values = c("#B2182B","#264653","#CDAD00")) +  
+  scale_fill_manual(values = c('#3E6B9B','#DAA83D',"#CDAD00")) +  
   labs(y = 'Total particles/ml', x = "", fill = '') +  
-  scale_y_continuous(limits = c(4e+10, 2.8e+11)) +
+  scale_y_continuous(limits = c(4e+8, 2.8e+11)) +
   theme2_noback +
   geom_signif(
     y_position = c(2.4e+11,2.55e+11), xmin = c(1,2), xmax = c(2.95,2.95),
@@ -40,20 +54,32 @@ ggsave(paste0(wdplot,'b',"total particles.pdf"), width = 13, height =6, units = 
 
 # c   ------------------------
 
-mean_plot <-  as.data.frame(read_excel(paste0(wddata,"NTA_inputdata.xlsx"),sheet=1))
 
 i <- 'AF4'
 mean_plot_cate <- dplyr::filter(mean_plot,method==i)
 mean_plot_cate <- mean_plot_cate %>% arrange(X1) %>%
   mutate(cum_cells = cumsum(as.numeric(value)), total_cells = sum(as.numeric(value)), cum_freq = cum_cells / total_cells)
-lower_bound <- min(mean_plot_cate$X1[mean_plot_cate$cum_freq > 0.025])
-upper_bound <- max(mean_plot_cate$X1[mean_plot_cate$cum_freq < 0.975])
 
-ggplot(mean_plot_cate, aes(x = as.numeric(X1), y = as.numeric(value), color = as.character(name))) +
+mean_plot_cate2 <- mean_plot_cate %>%
+  dplyr::mutate(
+    value = case_when(
+      name == "AF4_1_a" ~ value * 0.47,
+      name == "AF4_1_b" ~ value * 0.47,
+      name == "AF4_2_a" ~ value * 0.41,
+      name == "AF4_2_b" ~ value * 0.41,
+      name == "AF4_3_a" ~ value * 0.39,
+      name == "AF4_3_b" ~ value * 0.39,
+      TRUE                       ~ value
+    )
+  )
+lower_bound <- min(mean_plot_cate2$X1[mean_plot_cate2$cum_freq > 0.025])
+upper_bound <- max(mean_plot_cate2$X1[mean_plot_cate2$cum_freq < 0.975])
+
+ggplot(mean_plot_cate2, aes(x = as.numeric(X1), y = as.numeric(value), color = as.character(name))) +
   geom_line(size = 0.5, alpha = 0.7) +
   geom_vline(xintercept = lower_bound, color = "darkgrey", linetype = "dashed") +
   geom_vline(xintercept = upper_bound, color = "darkgrey", linetype = "dashed") +
-  scale_color_manual(values = c("#B2182B", "#B2182B", "#264653", "#264653", "#264653", "#264653"), name = "") +
+  scale_color_manual(values = c("#DAA83D", "#DAA83D", "#264653", "#264653", "#264653", "#264653"), name = "") +
   labs(title = paste0(i), x = "Size(nm)", y = "Particles/ml")+
   scale_x_continuous(limits=c(0,400),
                      breaks=seq(0,600,100))+
@@ -73,9 +99,9 @@ ggplot(mean_plot_cate,aes(x=as.numeric(X1),y=(as.numeric(value)),color=as.charac
   geom_line(size=0.5,alpha=0.7)+
   geom_vline(xintercept = lower_bound, color = "darkgrey", linetype = "dashed") +
   geom_vline(xintercept = upper_bound, color = "darkgrey", linetype = "dashed") +
-  scale_color_manual(values =c("#B2182B", "#B2182B","#264653","#264653","#264653","#264653"),name="")+
+  scale_color_manual(values =c("#DAA83D", "#DAA83D","#264653","#264653","#264653","#264653"),name="")+
   #theme_bw()+
-  labs(title = 'EXO-CMDS',x="Size(nm)",y="Particles/ml")+
+  labs(title = 'Exo-CMDS',x="Size(nm)",y="Particles/ml")+
   scale_x_continuous(limits=c(0,400), 
                      breaks=seq(0,600,100))+ 
   scale_y_continuous(labels = function(x) sprintf("%.1e", x))+
@@ -99,7 +125,7 @@ ggplot(mean_plot_cate,aes(x=as.numeric(X1),y=(as.numeric(value)),color=as.charac
   geom_line(size=0.5,alpha=0.7)+
   geom_vline(xintercept = lower_bound, color = "darkgrey", linetype = "dashed") +
   geom_vline(xintercept = upper_bound, color = "darkgrey", linetype = "dashed") +
-  scale_color_manual(values =c("#B2182B", "#B2182B","#264653","#264653","#264653","#264653"),name="")+
+  scale_color_manual(values =c("#DAA83D", "#DAA83D","#264653","#264653","#264653","#264653"),name="")+
   #theme_bw()+
   labs(title = 'SEC',x="Size(nm)",y="Particles/ml")+
   scale_x_continuous(limits=c(0,400), 

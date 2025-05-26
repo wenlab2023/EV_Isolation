@@ -11,7 +11,8 @@ load_packages()
 load_plot_packages() 
 
 log_data <- readRDS(paste0(wddata,"log_data.rds"))
-saveRDS(metadata,file=paste0(wddata,'metadata.RDS'))
+metadata <- readRDS(paste0(wddata,"metadata.RDS"))
+#saveRDS(metadata,file=paste0(wddata,'metadata.RDS'))
 # b log2intensity ----------------------
 
 log_data[is.na(log_data)] <- 0
@@ -78,7 +79,7 @@ ggplot(bind, aes(x=rank, y=mean_value, color=cate)) +
   geom_vline(data = bind %>% filter(!is.na(note)), aes(xintercept = rank), linetype = "dashed", color = "grey", size = 0.1) +
   geom_text(data = bind %>% filter(!is.na(note)), aes(x = rank, y = 35, label = note), color = "black",
             alpha=0.3, angle = 0, hjust = 0.5, size = 1.7)
-ggsave(paste0(wdplot,"b intensity3.pdf"),  width = 9, height = 6, units = "cm")
+ggsave(paste0(wdplot,"b intensity.pdf"),  width = 9, height = 6, units = "cm")
 
 # c freeze thaw ---------------------------------
 

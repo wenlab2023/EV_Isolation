@@ -1,4 +1,5 @@
 wd <- "~/R/"
+
 setwd(wd)
 
 wdcode <- paste0("code/") 
@@ -15,7 +16,7 @@ log_data <- readRDS(paste0(wddata,"log_data.rds"))
 metadata <- readRDS(file=paste0(wddata,'metadata.RDS'))
 
 
-#a clustering -------------------------------
+#a  -------------------------------
 log_data[is.na(log_data)] <- 0
 
 impute_data1 <- log_data
@@ -80,9 +81,9 @@ dev.off()
 saveRDS(clusterlist,file=paste0(wdresult,'MScluster.RDS'))
 
 
-#b heatmap cluster up_down-----------
-clusterlist <- readRDS(paste0(wdresult,'MScluster.RDS'))
-deplist <- readRDS(file=paste0(wdresult,'MS_dep.RDS'))
+#b -----------
+clusterlist <- readRDS(paste0(wddata,'MScluster.RDS'))
+deplist <- readRDS(file=paste0(wddata,'MS_dep.RDS'))
 
 names(clusterlist) <- c("MS_c1","MS_c2" , "MS_c3",  "MS_c4" , "MS_c5"  ,"MS_c6" , "MS_c7" , "MS_c8" , "MS_c9" ,
                         "MS_c10", "MS_c11" ,"MS_c12", "MS_c13" ,"MS_c14", "MS_c15" ,"MS_c16" ,"MS_c17")
@@ -127,7 +128,56 @@ heat <- ggplot(inpudata, aes(x = Var2, y = Var1)) +
 heat
 ggsave(paste0(wdplot,"b.pdf"), width = 7, height =6, units = "cm")
 
-#c1 Sanky-plot ---------------------------
+#c ------------------------------
+
+
+load(paste0(wddata,'F6data.R'))
+
+
+pba_af <- PBA[,1:6]
+pba_mf <- PBA[,7:12]
+pba_sec <- PBA[,13:18]
+
+log_data[is.na(log_data)] <- 0
+data_af <- log_data[,1:6]
+data_mf <- log_data[,7:12]
+data_sec <- log_data[,13:18]
+data_af <- data_af[rowSums(data_af > 0) >= 4, ]
+data_mf <- data_mf[rowSums(data_mf > 0) >= 4, ]
+data_sec <- data_sec[rowSums(data_sec > 0) >= 4, ]
+data_af[data_af==0] <- NA
+data_mf[data_mf==0] <- NA
+data_sec[data_sec==0] <- NA
+
+marker <- c('CD81','APOE') 
+
+p1 <- list()
+for (i in marker)  {
+  
+  ms1 <- melt(cbind(data_af[i,],data_mf[i,],data_sec[i,])  ) %>% 
+    mutate(catems='MS',tech=c(rep("AF4", 6), rep("MF", 6), rep("SEC", 6)))
+  pba1 <- melt(PBA[i,]) %>% mutate(catepbs='PBA')
+  inputdata <- left_join(ms1,pba1,by='variable') 
+  
+  p1[[i]] <- ggplot(inputdata, aes(x = value.x, y = value.y) )+
+    geom_point(aes(fill= tech),size = 1.5, alpha = 1,shape=21) +
+    theme2_noback +theme(legend.position = 'right') +
+    labs(title = i, y = "PBA - log2(NPX)", x = "MS - log2(Intensity)", legend = 'spearman corr') +
+    scale_fill_manual(values=c('#B5252E','#416997','#DAA83D','#ADC482'),labels=c('AF4','Exo-CMDS','SEC','PBA-control'))+
+    theme2_noback+ themelegendnone+
+    geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed", size = 0.5) + 
+    stat_cor(method = "pearson", aes(label = paste(..r.label.., ..p.label.., sep = "~`,`~")), 
+             # label.x = 20, label.y = 15, 
+             size = 2.7) 
+  
+}
+
+library(gridExtra)
+combined_plot <- do.call(grid.arrange, c(p1, ncol = 2) )
+ggsave(paste0(wdplot,'d',".pdf"),combined_plot,width =14, height =6, units = "cm")
+
+
+# d ---------------------------
 
 cluster_df <- bind_rows(lapply(names(clusterlist), function(cluster) {
   data.frame(Protein = clusterlist[[cluster]], Cluster =  sub("MS", "MS_c", cluster))
@@ -200,7 +250,6 @@ webshot::install_phantomjs()
 saveNetwork(sankeyplot,file=paste0(wdplot,"sankeyplot.html"))
 webshot::webshot(paste0(wdplot,"sankeyplot.html"),file=paste0(wdplot,"/csankeyplot3.pdf"),vwidth=300,vheight=500)
 
-# c go kegg --------------------------------
 library(dplyr) 
 library(org.Hs.eg.db) 
 library(clusterProfiler) 
@@ -336,13 +385,13 @@ plot_grid(p0[[1]], p0[[2]], p0[[3]], p0[[4]], p0[[6]],p0[[7]], p0[[8]], p0[[9]],
 ggsave(paste0(wdplot,"c2.pdf"), width = 10, height =20, units = "cm")
 
 
+#end -----------
 
 
+# e f   -------------------------------------
 
-# d e circle  -------------------------------------
-
-clusterlist <- readRDS(paste0(wdresult,'MScluster.RDS'))
-deplist <- readRDS(file=paste0(wdresult,'MS_dep.RDS'))
+clusterlist <- readRDS(paste0(wddata,'MScluster.RDS'))
+deplist <- readRDS(file=paste0(wddata,'MS_dep.RDS'))
 
 library(circlize)
 library(viridis)
@@ -543,44 +592,10 @@ mycolor <- c('#BC5D50FF','#D4978FFF','#E2BAB4FF','#C97231FF','#D79E62FF','#E1C36
   name <- c(namet(source5$source),namet(source5$target))
   dev.off() 
 }
-#f ------------------------------
-
-load(file=paste0(wddata,'F6fdata.Rdata'))
-
-pba_af <- PBA[,1:6]
-pba_mf <- PBA[,7:12]
-pba_sec <- PBA[,13:18]
-
-marker <- c('CD9','CD81') 
-
-p1 <- list()
-for (i in marker)  {
-  
-  ms1 <- melt(cbind(data_af[i,],data_mf[i,],data_sec[i,])  ) %>% 
-    mutate(catems='MS',tech=c(rep("AF4", 6), rep("MF", 6), rep("SEC", 6)))
-  pba1 <- melt(PBA[i,]) %>% mutate(catepbs='PBA')
-  inputdata <- left_join(ms1,pba1,by='variable') 
-  
-  p1[[i]] <- ggplot(inputdata, aes(x = value.x, y = value.y) )+
-    geom_point(aes(fill= tech),size = 1.5, alpha = 1,shape=21) +
-    theme2_noback +theme(legend.position = 'right') +
-    labs(title = i, y = "PBA - log2(NPX)", x = "MS - log2(Intensity)", legend = 'spearman corr') +
-    scale_fill_manual(values=c('#B5252E','#416997','#DAA83D','#ADC482'),labels=c('AF4','Exo-CMDS','SEC','PBA-control'))+
-    theme2_noback+ themelegendnone+
-    geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed", size = 0.5) + 
-    stat_cor(method = "pearson", aes(label = paste(..r.label.., ..p.label.., sep = "~`,`~")), 
-             # label.x = 20, label.y = 15, 
-             size = 2.7) 
-
-}
-
-library(gridExtra)
-combined_plot <- do.call(grid.arrange, c(p1, ncol = 2) )
-
-ggsave(paste0(wdplot,'d',".pdf"),combined_plot,width =14, height =6, units = "cm")
-
+#end-------------
 #S5 other protines ---------------------
 
+load(paste0(wddata,'F6data.R'))
 
 pro <- intersect(rownames(log_data),rownames(PBA))
 p1 <- list()
@@ -608,133 +623,4 @@ library(gridExtra)
 combined_plot <- do.call(grid.arrange, c(p1, ncol = 6) )
 
 ggsave(paste0(wdplot,'S5',".pdf"),combined_plot,width =30, height =42, units = "cm")
-
-#s6------------------------------
-
-load(file=paste0(wddata,'corr_pba_ms.R'))
-
-overlap <- intersect(rownames(PBA),rownames(log_data))
-
-log_data[is.na(log_data)] <- 0
-data_af <- log_data[,1:6]
-data_mf <- log_data[,7:12]
-data_sec <- log_data[,13:18]
-data_af <- data_af[rowSums(data_af > 0) >= 4, ]
-data_mf <- data_mf[rowSums(data_mf > 0) >= 4, ]
-data_sec <- data_sec[rowSums(data_sec > 0) >= 4, ]
-# data_af <- na.omit(data_af[overlap,])
-# data_mf <- na.omit(data_mf[overlap,])
-#data_sec <- na.omit(data_sec[overlap,])
-data_af[data_af==0] <- NA
-data_mf[data_mf==0] <- NA
-data_sec[data_sec==0] <- NA
-
-pba_af <- PBA[,1:6]
-pba_mf <- PBA[,7:12]
-pba_sec <- PBA[,13:18]
-
-resultaf <- corrfunc(pba_af,data_af)
-resultmf <- corrfunc(pba_mf,data_mf)
-resultsec <- corrfunc(pba_sec,data_sec)
-
-df1 <- resultaf[['df']]
-df2 <- resultmf[['df']]
-df3 <- resultsec[['df']]
-df4 <- resultaf[['df_cleanp']]
-df5 <- resultmf[['df_cleanp']]
-df6 <- resultsec[['df_cleanp']]
-
-p1 <- heatmapplot0(df1,df4)
-p2 <- heatmapplot0(df2,df5)
-p3 <- heatmapplot0(df3,df6)
-
-ggsave(paste0(wdplot,'s6.1',".pdf"),p1,width = 15, height = 8, units = "cm") 
-ggsave(paste0(wdplot,'s6.2',".pdf"),p2,width = 15, height = 8, units = "cm") 
-ggsave(paste0(wdplot,'s6.3',".pdf"),p3,width = 15, height = 8, units = "cm") 
-
-df1 <- resultaf[['df']]
-df2 <- resultmf[['df']]
-df3 <- resultsec[['df']]
-df4 <- resultaf[['dfp']]
-df5 <- resultmf[['dfp']]
-df6 <- resultsec[['dfp']]
-
-
-b1 <- bindcorr(df1, df4)
-b2 <- bindcorr(df2, df5)
-b3 <- bindcorr(df3, df6)
-b1f <- dplyr::filter(b1,p_value<0.05 & Pearson_corr>0)
-b2f <- dplyr::filter(b2,p_value<0.05 & Pearson_corr>0)
-b3f <- dplyr::filter(b3,p_value<0.05 & Pearson_corr>0)
-length(unique(b1f$MS_protein))
-length(unique(b2f$MS_protein))
-length(unique(b3f$MS_protein))
-write.csv(b1f,file=paste0(wdresult,'af4_','F6_cluster_protein.csv'),fileEncoding = "UTF-8")
-write.csv(b2f,file=paste0(wdresult,'cmds_','F6_cluster_protein.csv'),fileEncoding = "UTF-8")
-write.csv(b3f,file=paste0(wdresult,'sec_','F6_cluster_protein.csv'),fileEncoding = "UTF-8")
-
-#g ------------------
-clusterlist <- readRDS(file=paste0(wdresult,'MScluster.RDS'))
-
-corproaf <- resultaf[['clusterhighcorrgene']]
-corpromf <- resultmf[['clusterhighcorrgene']]
-corprosec <- resultsec[['clusterhighcorrgene']]
-
-clusterlist
-msaf <- two_list_overlap_gene(clusterlist,corproaf)
-msmf <- two_list_overlap_gene(clusterlist,corpromf)
-mssec <- two_list_overlap_gene(clusterlist,corprosec)
-
-names(corproaf) <- c("PBA_c0" , "PBA_c1" , "PBA_c2" , "PBA_c3",  "PBA_c4",  "PBA_c5" , "PBA_c6",  "PBA_c7" , "PBA_c8",  "PBA_c9" , "PBA_c10", "PBA_c11", "PBA_c12", "PBA_c13" ,"PBA_c14")
-names(corpromf) <-c("PBA_c0" , "PBA_c1" , "PBA_c2" , "PBA_c3",  "PBA_c4",  "PBA_c5" , "PBA_c6",  "PBA_c7" , "PBA_c8",  "PBA_c9" , "PBA_c10", "PBA_c11", "PBA_c12", "PBA_c13" ,"PBA_c14")
-names(corprosec) <- c("PBA_c0" , "PBA_c1" , "PBA_c2" , "PBA_c3",  "PBA_c4",  "PBA_c5" , "PBA_c6",  "PBA_c7" , "PBA_c8",  "PBA_c9" , "PBA_c10", "PBA_c11", "PBA_c12", "PBA_c13" ,"PBA_c14")
-
-
-msaf <- list_overlap(clusterlist,corproaf,bg_num=1802)
-msmf <- list_overlap(clusterlist,corpromf,bg_num=1802)
-mssec <- list_overlap(clusterlist,corprosec,bg_num=1802)
-
-msafp <- msaf
-msmfp <- msmf
-mssecp <- mssec
-
-msafp[msafp<0.05] <- '*'
-msafp[msafp>0.05] <- ''
-msmfp[msmfp<0.05] <- '*'
-msmfp[msmfp>0.05] <- ''
-mssecp[mssecp<0.05] <- '*'
-mssecp[mssecp>0.05] <- ''
-
-msafja <- list_overlap_jaccard(clusterlist,corproaf)
-msmfja <- list_overlap_jaccard(clusterlist,corpromf)
-mssecja <- list_overlap_jaccard(clusterlist,corprosec)
-
-max(msafja)
-max(msmfja)
-max(mssecja)
-
-width_in <- 17 / 2.54
-height_in <- 17 / 2.54
-pdf(paste0(wdplot,'g.',"2.af4.pdf"), width = width_in, height = height_in)
-heatmapplot(msafja,msafp)
-dev.off()
-pdf(paste0(wdplot,'g.',"2.mf.pdf"), width = width_in, height = height_in)
-heatmapplot(msmfja,msmfp)
-dev.off()
-pdf(paste0(wdplot,'g.',"2.sec.pdf"), width = width_in, height = height_in)
-heatmapplot(mssecja,mssecp)
-dev.off()
-
-
-width_in <- 8 / 2.54
-height_in <- 8 / 2.54
-pdf(paste0(wdplot,'g.',"af4del.pdf"), width = width_in, height = height_in)
-heatmapplot2(msafja,msafp)
-dev.off()
-pdf(paste0(wdplot,'g.',"cmdsdel.pdf"), width = width_in, height = height_in)
-heatmapplot2(msmfja,msmfp)
-dev.off()
-pdf(paste0(wdplot,'g.',"secdel.pdf"), width = width_in, height = height_in)
-heatmapplot2(mssecja,mssecp)
-dev.off()
 
